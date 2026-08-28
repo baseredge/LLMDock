@@ -617,10 +617,11 @@ async function doConvert() {
             return;
         }
 
+        const q = (res.quality || 'passthrough').toLowerCase();
         badgeEl.style.display = 'inline-block';
-        badgeEl.className = 'tag tag-' + res.quality;
-        badgeEl.innerText = '等级: ' + res.quality.toUpperCase();
-        stepsEl.innerText = res.steps && res.steps.length ? '步骤: ' + res.steps.map(s => s.Converter || s.From+'->'+s.To).join(' → ') : '';
+        badgeEl.className = 'tag tag-' + q;
+        badgeEl.innerText = q === 'passthrough' ? '模式: 同协议直通透传' : '等级: ' + q.toUpperCase();
+        stepsEl.innerText = res.steps && res.steps.length ? '步骤: ' + res.steps.map(s => s.Converter || s.From+'->'+s.To).join(' → ') : '原生直通';
         outEl.innerText = JSON.stringify(res.result, null, 2);
     } catch (e) {
         document.getElementById('convOutput').innerText = '// 异常: ' + e.message;

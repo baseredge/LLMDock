@@ -552,7 +552,24 @@ func handleConvert(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	srcFmt := mapTargetFormat(req.SourceFormat)
 	targetFmt := mapTargetFormat(req.TargetFormat)
+
+	// 同协议直接透传，无需冗余转换
+	if srcFmt == targetFmt {
+		json.NewEncoder(w).Encode(ConvertResp{
+			Success: true,
+			Quality: "passthrough",
+			Result:  parsed,
+			Steps: []map[string]string{{
+				"Converter": "direct_passthrough (同协议原生直通透传)",
+				"From":      req.SourceFormat,
+				"To":        req.TargetFormat,
+			}},
+		})
+		return
+	}
+
 	res, err := relayconvert.ConvertRequest(context.Background(), meta, targetFmt, parsed)
 	if err != nil {
 		json.NewEncoder(w).Encode(ConvertResp{Success: false, Error: "格式转换失败: " + err.Error()})
