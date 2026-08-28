@@ -342,12 +342,26 @@ func responsesRequestToolsToChat(raw json.RawMessage) ([]dto.ToolCallRequest, er
 	for _, tool := range tools {
 		toolType := strings.TrimSpace(kitutil.Interface2String(tool["type"]))
 		if toolType == "function" {
+			name := strings.TrimSpace(kitutil.Interface2String(tool["name"]))
+			desc := kitutil.Interface2String(tool["description"])
+			params := tool["parameters"]
+			if name == "" {
+				if fn, ok := tool["function"].(map[string]any); ok {
+					name = strings.TrimSpace(kitutil.Interface2String(fn["name"]))
+					if desc == "" {
+						desc = kitutil.Interface2String(fn["description"])
+					}
+					if params == nil {
+						params = fn["parameters"]
+					}
+				}
+			}
 			out = append(out, dto.ToolCallRequest{
 				Type: "function",
 				Function: dto.FunctionRequest{
-					Name:        strings.TrimSpace(kitutil.Interface2String(tool["name"])),
-					Description: kitutil.Interface2String(tool["description"]),
-					Parameters:  tool["parameters"],
+					Name:        name,
+					Description: desc,
+					Parameters:  params,
 				},
 			})
 			continue

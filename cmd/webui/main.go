@@ -568,6 +568,37 @@ func handleConvert(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseRequestByFormat(format string, raw []byte) (any, error) {
+	var rawMap map[string]any
+	_ = json.Unmarshal(raw, &rawMap)
+
+	// 智能结构特征检测：当用户输入的 JSON 与所选标签格式不同时自动适配
+	if _, hasMessages := rawMap["messages"]; hasMessages {
+		if _, hasContents := rawMap["contents"]; !hasContents {
+			if _, hasSystem := rawMap["system"]; hasSystem && strings.ToLower(format) == "claude" {
+				var req dto.ClaudeRequest
+				if err := json.Unmarshal(raw, &req); err == nil && len(req.Messages) > 0 {
+					return &req, nil
+				}
+			}
+			var req dto.GeneralOpenAIRequest
+			if err := json.Unmarshal(raw, &req); err == nil && len(req.Messages) > 0 {
+				return &req, nil
+			}
+		}
+	}
+	if _, hasInput := rawMap["input"]; hasInput {
+		var req dto.OpenAIResponsesRequest
+		if err := json.Unmarshal(raw, &req); err == nil {
+			return &req, nil
+		}
+	}
+	if _, hasContents := rawMap["contents"]; hasContents {
+		var req dto.GeminiChatRequest
+		if err := json.Unmarshal(raw, &req); err == nil {
+			return &req, nil
+		}
+	}
+
 	switch strings.ToLower(format) {
 	case "openai", "openai_chat":
 		var req dto.GeneralOpenAIRequest

@@ -291,11 +291,28 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 		for _, tool := range req.Tools {
 			switch tool.Type {
 			case "function":
+				name := tool.Function.Name
+				desc := tool.Function.Description
+				params := tool.Function.Parameters
+				if name == "" && len(tool.Custom) > 0 {
+					var m map[string]any
+					if err := kitutil.Unmarshal(tool.Custom, &m); err == nil {
+						if n, ok := m["name"].(string); ok {
+							name = n
+						}
+						if d, ok := m["description"].(string); ok {
+							desc = d
+						}
+						if p, ok := m["parameters"]; ok {
+							params = p
+						}
+					}
+				}
 				tools = append(tools, map[string]any{
 					"type":        "function",
-					"name":        tool.Function.Name,
-					"description": tool.Function.Description,
-					"parameters":  tool.Function.Parameters,
+					"name":        name,
+					"description": desc,
+					"parameters":  params,
 				})
 			default:
 				// Best-effort: keep original tool shape for unknown types.
