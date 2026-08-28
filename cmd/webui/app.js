@@ -206,7 +206,8 @@ function renderModelTableRows(chIdx, ch) {
                         <option value="medium" ${thinking==='medium'?'selected':''}>medium (中强度 ~8K / effort: medium)</option>
                         <option value="high" ${thinking==='high'?'selected':''}>high (高强度 ~16K / effort: high)</option>
                         <option value="xhigh" ${thinking==='xhigh'||thinking==='x-high'?'selected':''}>xhigh (超强思考 ~32K / effort: xhigh)</option>
-                        <option value="ultra" ${thinking==='ultra'||thinking==='max'?'selected':''}>ultra (满血极限 ~64K / effort: ultra)</option>
+                        <option value="max" ${thinking==='max'?'selected':''}>max (最大深度 ~48K / effort: max)</option>
+                        <option value="ultra" ${thinking==='ultra'?'selected':''}>ultra (满血极限 ~64K / effort: ultra)</option>
                         <option value="auto" ${thinking==='auto'?'selected':''}>auto (自适应动态 / dynamic)</option>
                         <option value="custom" ${thinking==='custom'||thinking==='budget'?'selected':''}>custom (自定义 Token 预算)</option>
                     </select>
@@ -254,7 +255,8 @@ function onThinkingModeChange(chIdx, mIdx, mode) {
     else if (mode === 'medium') budget = 8192;
     else if (mode === 'high') budget = 16384;
     else if (mode === 'xhigh' || mode === 'x-high') budget = 32768;
-    else if (mode === 'ultra' || mode === 'max') budget = 65536;
+    else if (mode === 'max') budget = 49152;
+    else if (mode === 'ultra') budget = 65536;
     else if (mode === 'custom' || mode === 'budget') {
         const cur = channelsData[chIdx].models[mIdx].thinking_budget;
         budget = cur > 0 ? cur : 4096;
