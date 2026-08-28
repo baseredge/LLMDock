@@ -76,11 +76,13 @@ func defaultModelsForProvider(provider string) []ModelConfig {
 		}
 	default:
 		return []ModelConfig{
-			{ID: "gpt-4o", Alias: "gpt-4o", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
-			{ID: "gpt-4o-mini", Alias: "gpt-4o-mini", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
-			{ID: "o3-mini", Alias: "o3-mini", Enabled: true, ContextTokens: 200000, MaxOutputTokens: 65536, ThinkingMode: "medium", ThinkingBudget: 4096},
-			{ID: "deepseek-chat", Alias: "deepseek-chat", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
-			{ID: "deepseek-reasoner", Alias: "deepseek-reasoner", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "high", ThinkingBudget: 8192},
+			{ID: "mimo-v2.5-free", Alias: "mimo-v2.5-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "medium", ThinkingBudget: 8192},
+			{ID: "nemotron-3.5-lightning-free", Alias: "nemotron-3.5-lightning-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "laguna-s-2.1-free", Alias: "laguna-s-2.1-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "hy3-free", Alias: "hy3-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "muse-spark-1.2-contributor-free", Alias: "muse-spark-1.2-contributor-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "nemotron-3-ultra-free", Alias: "nemotron-3-ultra-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "deepseek-v4-flash-free", Alias: "deepseek-v4-flash-free", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "off", ThinkingBudget: 0},
 		}
 	}
 }
@@ -88,28 +90,12 @@ func defaultModelsForProvider(provider string) []ModelConfig {
 var globalConfig = &AppConfig{
 	Channels: []ChannelConfig{
 		{
-			ID:       "ch_openai",
-			Name:     "OpenAI Chat Completions 兼容渠道",
+			ID:       "ch_opencode_zen",
+			Name:     "OpenCode Zen 免费中转渠道",
 			Provider: "openai",
-			APIKey:   "",
-			BaseURL:  "https://api.openai.com",
-			Models:   defaultModelsForProvider("openai"),
-		},
-		{
-			ID:       "ch_responses",
-			Name:     "OpenAI Responses 官方渠道",
-			Provider: "openai_responses",
-			APIKey:   "",
-			BaseURL:  "https://api.openai.com",
-			Models:   defaultModelsForProvider("openai_responses"),
-		},
-		{
-			ID:       "ch_claude",
-			Name:     "Anthropic Claude 官方渠道",
-			Provider: "claude",
-			APIKey:   "",
-			BaseURL:  "https://api.anthropic.com",
-			Models:   defaultModelsForProvider("claude"),
+			APIKey:   "public",
+			BaseURL:  "https://opencode.ai/zen/v1",
+			Models:   defaultModelsForProvider("opencode_zen"),
 		},
 	},
 }

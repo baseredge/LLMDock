@@ -416,13 +416,15 @@ async function testAllEnabledModels(chIdx, btn) {
 function addChannel() {
     channelsData.push({
         id: 'ch_' + Date.now(),
-        name: "新添加渠道",
-        provider: "claude",
-        api_key: "",
-        base_url: "https://api.anthropic.com",
+        name: "OpenCode Zen 免费渠道",
+        provider: "openai",
+        api_key: "public",
+        base_url: "https://opencode.ai/zen/v1",
         models: [
-            { id: "claude-3-7-sonnet-20250219", alias: "claude-3-7-sonnet", enabled: true, context_tokens: 200000, max_output_tokens: 8192, thinking_mode: "medium", thinking_budget: 4096 },
-            { id: "claude-3-5-sonnet-20241022", alias: "claude-3-5-sonnet", enabled: true, context_tokens: 200000, max_output_tokens: 8192, thinking_mode: "off", thinking_budget: 0 }
+            { id: "mimo-v2.5-free", alias: "mimo-v2.5-free", enabled: true, context_tokens: 256000, max_output_tokens: 65536, thinking_mode: "medium", thinking_budget: 8192 },
+            { id: "laguna-s-2.1-free", alias: "laguna-s-2.1-free", enabled: true, context_tokens: 256000, max_output_tokens: 65536, thinking_mode: "off", thinking_budget: 0 },
+            { id: "hy3-free", alias: "hy3-free", enabled: true, context_tokens: 256000, max_output_tokens: 65536, thinking_mode: "off", thinking_budget: 0 },
+            { id: "nemotron-3-ultra-free", alias: "nemotron-3-ultra-free", enabled: true, context_tokens: 256000, max_output_tokens: 65536, thinking_mode: "off", thinking_budget: 0 }
         ]
     });
     renderChannels();
