@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLMDock - 智能多渠道与多模型网关</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #151d2e;
+            --panel-card: #1c263c;
+            --border-color: #2a3854;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --purple: #c084fc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo { font-size: 1.15rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+        .badge { background: #0369a1; color: #e0f2fe; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .nav-tabs { display: flex; gap: 8px; }
+        .nav-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .container {
+            flex: 1;
+            padding: 16px 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .view-section { display: none; height: 100%; }
+        .view-section.active { display: flex; flex-direction: column; }
+        
+        .config-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 14px;
+        }
+        .channel-card {
+            background: var(--panel-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .channel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .channel-title { font-weight: 600; font-size: 1.05rem; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+        .form-row { display: flex; flex-direction: column; gap: 4px; }
+        .form-row label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+        .form-row input, .form-row select {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 0.88rem;
+            font-family: inherit;
+        }
+        .form-row input:focus, .form-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .url-preview-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            font-family: "Consolas", "Courier New", monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px dashed #243048;
+        }
+        .url-preview-hint code { color: #7dd3fc; }
+
+        .models-section {
+            background: #0d1424;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .models-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        .model-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+        .model-table th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #151f33;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .model-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #1a273f;
+            vertical-align: middle;
+        }
+        .model-table tr:hover {
+            background: #141d2f;
+        }
+        .table-input {
+            background: #070a10;
+            border: 1px solid #283753;
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: #fff;
+            font-size: 0.82rem;
+            font-family: monospace;
+            width: 100%;
+        }
+        .table-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .table-select {
+            background: #070a10;
+            border: 1px solid #283753;
+            border-radius: 4px;
+            padding: 4px 6px;
+            color: #fff;
+            font-size: 0.82rem;
+            font-family: inherit;
+            width: 100%;
+        }
+        .table-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .model-status-badge {
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        .status-ok { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+        .status-err { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+        .status-testing { background: #713f12; color: #fde047; }
+
+        button {
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: #082f49; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-success { background: #059669; color: #fff; }
+        .btn-success:hover { background: #047857; }
+        .btn-secondary { background: #334155; color: var(--text-primary); border: 1px solid #475569; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-danger { background: #dc2626; color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-sm { padding: 3px 8px; font-size: 0.75rem; }
+
+        .converter-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            overflow: hidden;
+        }
+        .card-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.25);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+        .tab-sub-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .tab-sub-btn.active {
+            background: #334155;
+            color: var(--accent);
+            border-color: #475569;
+            font-weight: 600;
+        }
+        textarea, pre {
+            flex: 1;
+            width: 100%;
+            background: #090d16;
+            border: none;
+            padding: 12px;
+            color: #e2e8f0;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.88rem;
+            resize: none;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .status-bar {
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 24px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .code-box {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            margin-top: 8px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            ⚓ LLMDock 智能大模型网关与拓展坞
+            <span class="badge">薄型 Go 原生</span>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-btn active" onclick="switchView('channels', this)">⚙️ 渠道与多模型高级配置</button>
+            <button class="nav-btn" onclick="switchView('converter', this)">⚡ 协议转换实验室</button>
+            <button class="nav-btn" onclick="switchView('ide', this)">🔌 IDE & Code 接入</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="view-channels" class="view-section active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div>
+                    <h2 style="font-size:1.15rem; font-weight:600;">多渠道与多模型高级参数配置</h2>
+                    <p style="font-size:0.85rem; color:var(--text-secondary);">每个渠道可配置多个模型，支持细粒度设置<b>上下文容量 (Context)</b>、<b>最大输出 Tokens</b> 与 <b>思考强度 / Reasoning 预算</b>。</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-secondary" onclick="addChannel()">➕ 添加新渠道</button>
+                    <button class="btn-primary" onclick="saveAllChannels()">💾 保存全部配置</button>
+                </div>
+            </div>
+
+            <div id="channelsContainer" class="config-grid"></div>
+        </div>
+
+        <div id="view-converter" class="view-section">
+            <div style="margin-bottom:10px;">
+                <h2 style="font-size:1.1rem; font-weight:600;">大模型多协议实时互转预览</h2>
+                <p style="font-size:0.85rem; color:var(--text-secondary);">左侧输入任一格式，右侧自动实时编译为目标协议的规范 JSON 载荷。</p>
+            </div>
+            <div class="converter-grid">
+                <div class="card-panel">
+                    <div class="panel-header">
+                        <div>📥 输入源格式</div>
+                        <div>
+                            <button class="tab-sub-btn active" onclick="setConvSource('openai', this)">OpenAI Chat</button>
+                            <button class="tab-sub-btn" onclick="setConvSource('claude', this)">Claude</button>
+                            <button class="tab-sub-btn" onclick="setConvSource('gemini', this)">Gemini</button>
+                            <button class="tab-sub-btn" onclick="setConvSource('openai_responses', this)">Responses</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; padding:8px;">
+                        <textarea id="convInput" spellcheck="false" oninput="doConvert()"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="btn-primary" onclick="doConvert()">⚡ 立即转换</button>
+                            <button class="btn-secondary" onclick="loadSample('simple')">📋 基础问答示例</button>
+                            <button class="btn-secondary" onclick="loadSample('tools')">🔧 Tool Call 示例</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <div class="panel-header">
+                        <div>📤 目标格式输出 <span id="qualityBadge" class="tag tag-good" style="display:none;"></span></div>
+                        <div>
+                            <button class="tab-sub-btn" onclick="setConvTarget('openai', this)">OpenAI Chat</button>
+                            <button class="tab-sub-btn active" onclick="setConvTarget('claude', this)">Claude</button>
+                            <button class="tab-sub-btn" onclick="setConvTarget('gemini', this)">Gemini</button>
+                            <button class="tab-sub-btn" onclick="setConvTarget('openai_responses', this)">Responses</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; padding:8px;">
+                        <pre id="convOutput">// 实时输出转换结果</pre>
+                        <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+                            <button class="btn-secondary" onclick="copyConvResult()">📋 复制 JSON</button>
+                            <span id="stepsText" style="font-size:0.8rem; color:var(--text-secondary); margin-left:auto;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-ide" class="view-section">
+            <h2 style="font-size:1.15rem; font-weight:600; margin-bottom:8px;">IDE / 代码工具接入配置</h2>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:16px;">
+                所有在【渠道与模型配置】中启用的模型（包括其对外 Alias 别名），均已自动聚合在 <code>/v1/models</code>。在代码工具中按 OpenAI 格式填写即可：
+            </p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="channel-card">
+                    <div class="channel-title">🛠️ VS Code Continue 插件</div>
+                    <p style="font-size:0.82rem; color:var(--text-secondary);">编辑 <code>~/.continue/config.json</code>：</p>
+                    <div class="code-box">{
+  "models": [
+    {
+      "title": "LLMDock 多模型代理",
+      "provider": "openai",
+      "model": "claude-3-7-sonnet",
+      "apiBase": "http://127.0.0.1:3000/v1",
+      "apiKey": "dummy"
+    }
+  ]
+}</div>
+                    <div class="url-preview-hint" style="margin-top:8px;">
+                        <strong>IDE 实际请求完整端点:</strong> <code>http://127.0.0.1:3000/v1/chat/completions</code>
+                    </div>
+                </div>
+
+                <div class="channel-card">
+                    <div class="channel-title">⚡ Cline / Roo Code / Cursor</div>
+                    <p style="font-size:0.82rem; color:var(--text-secondary);">在插件设置中填入：</p>
+                    <div class="code-box">API Provider: OpenAI Compatible
+Base URL:     http://127.0.0.1:3000/v1
+API Key:      dummy
+Model ID:     已启用的任意模型别名 (如 claude-3-7-sonnet, gpt-4o, deepseek-reasoner)</div>
+                    <div class="url-preview-hint" style="margin-top:8px;">
+                        <strong>IDE 实际请求完整端点:</strong> <code>http://127.0.0.1:3000/v1/chat/completions</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span>服务状态：<strong>在线 (127.0.0.1:3000)</strong> · 内存占用：<strong>~10 MB</strong></span>
+        <span>已启用模型接口：<code>http://127.0.0.1:3000/v1/models</code></span>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
