@@ -7,9 +7,8 @@ function computeFullTargetURL(provider, baseUrl) {
     let base = (baseUrl || '').trim();
     if (!base) {
         if (provider === 'claude') base = 'https://api.anthropic.com';
-        else if (provider === 'deepseek') base = 'https://api.deepseek.com';
+        else if (provider === 'openai_responses' || provider === 'responses') base = 'https://api.openai.com';
         else if (provider === 'gemini') base = 'https://generativelanguage.googleapis.com';
-        else if (provider === 'ollama') base = 'http://localhost:11434';
         else base = 'https://api.openai.com';
     }
     base = base.replace(/\/+$/, '');
@@ -18,6 +17,10 @@ function computeFullTargetURL(provider, baseUrl) {
         if (base.endsWith('/v1/messages')) return base;
         if (base.endsWith('/v1')) return base + '/messages';
         return base + '/v1/messages';
+    } else if (provider === 'openai_responses' || provider === 'responses') {
+        if (base.endsWith('/v1/responses')) return base;
+        if (base.endsWith('/v1')) return base + '/responses';
+        return base + '/v1/responses';
     } else if (provider === 'gemini') {
         return base + '/v1beta/models/{model}:generateContent';
     } else {
@@ -77,11 +80,10 @@ function renderChannels() {
                 <div class="form-row">
                     <label>厂商协议类型 (Provider)</label>
                     <select onchange="updateChannelField(${idx}, 'provider', this.value); refreshCardURL(${idx});">
-                        <option value="claude" ${ch.provider==='claude'?'selected':''}>Anthropic Claude (自动转 Messages)</option>
-                        <option value="deepseek" ${ch.provider==='deepseek'?'selected':''}>DeepSeek (OpenAI 兼容)</option>
-                        <option value="openai" ${ch.provider==='openai'?'selected':''}>OpenAI 官方</option>
-                        <option value="gemini" ${ch.provider==='gemini'?'selected':''}>Google Gemini</option>
-                        <option value="ollama" ${ch.provider==='ollama'?'selected':''}>本地 Ollama</option>
+                        <option value="openai" ${ch.provider==='openai'?'selected':''}>OpenAI Chat Completions (/v1/chat/completions · OpenAI / DeepSeek / 通用兼容)</option>
+                        <option value="openai_responses" ${ch.provider==='openai_responses'||ch.provider==='responses'?'selected':''}>OpenAI Responses (/v1/responses · OpenAI 新一代协议)</option>
+                        <option value="claude" ${ch.provider==='claude'?'selected':''}>Anthropic Claude (/v1/messages · Claude 原生协议)</option>
+                        <option value="gemini" ${ch.provider==='gemini'?'selected':''}>Google Gemini (:generateContent · Gemini 原生协议)</option>
                     </select>
                 </div>
                 <div class="form-row">

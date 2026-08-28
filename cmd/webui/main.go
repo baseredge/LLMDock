@@ -62,10 +62,12 @@ func defaultModelsForProvider(provider string) []ModelConfig {
 			{ID: "claude-3-5-haiku-20241022", Alias: "claude-3-5-haiku", Enabled: true, ContextTokens: 200000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
 			{ID: "claude-3-opus-20240229", Alias: "claude-3-opus", Enabled: false, ContextTokens: 200000, MaxOutputTokens: 8192, ThinkingMode: "off", ThinkingBudget: 0},
 		}
-	case "deepseek":
+	case "openai_responses", "responses":
 		return []ModelConfig{
-			{ID: "deepseek-chat", Alias: "deepseek-chat", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
-			{ID: "deepseek-reasoner", Alias: "deepseek-reasoner", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "high", ThinkingBudget: 8192},
+			{ID: "gpt-4o", Alias: "gpt-4o-responses", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "gpt-4o-mini", Alias: "gpt-4o-mini-responses", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "o3-mini", Alias: "o3-mini-responses", Enabled: true, ContextTokens: 200000, MaxOutputTokens: 65536, ThinkingMode: "medium", ThinkingBudget: 4096},
+			{ID: "o1", Alias: "o1-responses", Enabled: false, ContextTokens: 200000, MaxOutputTokens: 65536, ThinkingMode: "high", ThinkingBudget: 16000},
 		}
 	case "gemini":
 		return []ModelConfig{
@@ -77,7 +79,8 @@ func defaultModelsForProvider(provider string) []ModelConfig {
 			{ID: "gpt-4o", Alias: "gpt-4o", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
 			{ID: "gpt-4o-mini", Alias: "gpt-4o-mini", Enabled: true, ContextTokens: 128000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
 			{ID: "o3-mini", Alias: "o3-mini", Enabled: true, ContextTokens: 200000, MaxOutputTokens: 65536, ThinkingMode: "medium", ThinkingBudget: 4096},
-			{ID: "o1", Alias: "o1", Enabled: false, ContextTokens: 200000, MaxOutputTokens: 65536, ThinkingMode: "high", ThinkingBudget: 16000},
+			{ID: "deepseek-chat", Alias: "deepseek-chat", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 16384, ThinkingMode: "off", ThinkingBudget: 0},
+			{ID: "deepseek-reasoner", Alias: "deepseek-reasoner", Enabled: true, ContextTokens: 256000, MaxOutputTokens: 65536, ThinkingMode: "high", ThinkingBudget: 8192},
 		}
 	}
 }
@@ -85,28 +88,28 @@ func defaultModelsForProvider(provider string) []ModelConfig {
 var globalConfig = &AppConfig{
 	Channels: []ChannelConfig{
 		{
-			ID:       "ch_claude",
-			Name:     "Anthropic 官方主渠道",
-			Provider: "claude",
-			APIKey:   "",
-			BaseURL:  "https://api.anthropic.com",
-			Models:   defaultModelsForProvider("claude"),
-		},
-		{
-			ID:       "ch_deepseek",
-			Name:     "DeepSeek 官方渠道",
-			Provider: "deepseek",
-			APIKey:   "",
-			BaseURL:  "https://api.deepseek.com",
-			Models:   defaultModelsForProvider("deepseek"),
-		},
-		{
 			ID:       "ch_openai",
-			Name:     "OpenAI 官方渠道",
+			Name:     "OpenAI Chat Completions 兼容渠道",
 			Provider: "openai",
 			APIKey:   "",
 			BaseURL:  "https://api.openai.com",
 			Models:   defaultModelsForProvider("openai"),
+		},
+		{
+			ID:       "ch_responses",
+			Name:     "OpenAI Responses 官方渠道",
+			Provider: "openai_responses",
+			APIKey:   "",
+			BaseURL:  "https://api.openai.com",
+			Models:   defaultModelsForProvider("openai_responses"),
+		},
+		{
+			ID:       "ch_claude",
+			Name:     "Anthropic Claude 官方渠道",
+			Provider: "claude",
+			APIKey:   "",
+			BaseURL:  "https://api.anthropic.com",
+			Models:   defaultModelsForProvider("claude"),
 		},
 	},
 }
@@ -431,12 +434,46 @@ func handleTestModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if baseURL == "" {
-		if provider == "deepseek" {
-			baseURL = "https://api.deepseek.com"
-		} else {
+	if provider == "openai_responses" || provider == "responses" {
+		if baseURL == "" {
 			baseURL = "https://api.openai.com"
 		}
+		meta := &convmeta.Values{
+			OriginModelName:     req.Model,
+			UpstreamModelName:   req.Model,
+			ChannelMetaAttached: true,
+		}
+		rRes, err := relayconvert.ConvertRequest(context.Background(), meta, types.RelayFormatOpenAIResponses, &mockPrompt)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "协议转换错误: " + err.Error()})
+			return
+		}
+		payload, _ := json.Marshal(rRes.Value)
+
+		httpReq, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/responses", bytes.NewReader(payload))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
+
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "网络超时: " + err.Error()})
+			return
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			json.NewEncoder(w).Encode(map[string]any{"success": false, "error": fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(body))})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"success":    true,
+			"latency_ms": time.Since(start).Milliseconds(),
+		})
+		return
+	}
+
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
 	}
 	payload, _ := json.Marshal(mockPrompt)
 	httpReq, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/chat/completions", bytes.NewReader(payload))
@@ -882,14 +919,65 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 默认 OpenAI / DeepSeek / 通用
-	baseURL := ch.BaseURL
-	if baseURL == "" {
-		if strings.ToLower(ch.Provider) == "deepseek" {
-			baseURL = "https://api.deepseek.com"
-		} else {
+	if strings.ToLower(ch.Provider) == "openai_responses" || strings.ToLower(ch.Provider) == "responses" {
+		meta := &convmeta.Values{
+			OriginModelName:     openAIReq.Model,
+			UpstreamModelName:   upstreamModelID,
+			ChannelMetaAttached: true,
+			ReasoningEffort:      thinkingEffort,
+		}
+		respRes, err := relayconvert.ConvertRequest(context.Background(), meta, types.RelayFormatOpenAIResponses, &openAIReq)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":{"message":"Convert to Responses failed: %s"}}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		responsesPayload, _ := json.Marshal(respRes.Value)
+		baseURL := ch.BaseURL
+		if baseURL == "" {
 			baseURL = "https://api.openai.com"
 		}
+		targetEndpoint := strings.TrimSuffix(baseURL, "/") + "/v1/responses"
+
+		httpReq, _ := http.NewRequest(http.MethodPost, targetEndpoint, bytes.NewReader(responsesPayload))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+ch.APIKey)
+
+		client := &http.Client{Timeout: 120 * time.Second}
+		httpResp, err := client.Do(httpReq)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":{"message":"Upstream request failed: %s"}}`, err.Error()), http.StatusBadGateway)
+			return
+		}
+		defer httpResp.Body.Close()
+
+		respBytes, _ := io.ReadAll(httpResp.Body)
+		if httpResp.StatusCode != http.StatusOK {
+			w.WriteHeader(httpResp.StatusCode)
+			w.Write(respBytes)
+			return
+		}
+
+		var responsesResp dto.OpenAIResponsesResponse
+		if err := json.Unmarshal(respBytes, &responsesResp); err != nil {
+			w.WriteHeader(httpResp.StatusCode)
+			w.Write(respBytes)
+			return
+		}
+
+		convertedResp, err := relayconvert.ConvertResponse(context.Background(), meta, types.RelayFormatOpenAI, &responsesResp)
+		if err != nil {
+			http.Error(w, fmt.Sprintf(`{"error":{"message":"Convert response failed: %s"}}`, err.Error()), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(convertedResp.Value)
+		return
+	}
+
+	// 默认 OpenAI Chat Completions / 通用兼容
+	baseURL := ch.BaseURL
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
 	}
 	targetEndpoint := strings.TrimSuffix(baseURL, "/") + "/v1/chat/completions"
 	openAIReq.Model = upstreamModelID
