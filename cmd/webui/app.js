@@ -487,16 +487,79 @@ const sampleSets = {
     tools: {
         openai: {
             model: 'gpt-4o',
-            messages: [{ role: 'user', content: '查询北京天气' }],
+            messages: [{ role: 'user', content: '查询北京今天的天气情况' }],
             tools: [{
                 type: 'function',
                 function: {
-                    name: 'get_weather',
-                    description: '查询天气',
-                    parameters: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] }
+                    name: 'get_current_weather',
+                    description: '获取指定城市的实时天气与温度',
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            location: { type: 'string', description: '城市名，如北京' },
+                            unit: { type: 'string', enum: ['celsius', 'fahrenheit'] }
+                        },
+                        required: ['location']
+                    }
                 }
             }],
-            max_tokens: 1024
+            max_tokens: 2048
+        },
+        claude: {
+            model: 'claude-3-5-sonnet-20241022',
+            messages: [{ role: 'user', content: '查询北京今天的天气情况' }],
+            tools: [{
+                name: 'get_current_weather',
+                description: '获取指定城市的实时天气与温度',
+                input_schema: {
+                    type: 'object',
+                    properties: {
+                        location: { type: 'string', description: '城市名，如北京' },
+                        unit: { type: 'string', enum: ['celsius', 'fahrenheit'] }
+                    },
+                    required: ['location']
+                }
+            }],
+            max_tokens: 2048
+        },
+        gemini: {
+            contents: [{
+                role: 'user',
+                parts: [{ text: '查询北京今天的天气情况' }]
+            }],
+            tools: [{
+                functionDeclarations: [{
+                    name: 'get_current_weather',
+                    description: '获取指定城市的实时天气与温度',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            location: { type: 'STRING', description: '城市名，如北京' }
+                        },
+                        required: ['location']
+                    }
+                }]
+            }],
+            generationConfig: {
+                maxOutputTokens: 2048
+            }
+        },
+        openai_responses: {
+            model: 'gpt-4o',
+            input: [{ role: 'user', content: '查询北京今天的天气情况' }],
+            tools: [{
+                type: 'function',
+                name: 'get_current_weather',
+                description: '获取指定城市的实时天气与温度',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        location: { type: 'string', description: '城市名，如北京' }
+                    },
+                    required: ['location']
+                }
+            }],
+            max_output_tokens: 2048
         }
     }
 };
