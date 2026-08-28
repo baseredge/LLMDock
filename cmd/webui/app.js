@@ -198,14 +198,14 @@ function renderModelTableRows(chIdx, ch) {
                 </td>
                 <td>
                     <select class="table-select" onchange="onThinkingModeChange(${chIdx}, ${mIdx}, this.value)">
-                        <option value="off" ${thinking==='off'?'selected':''}>🚫 关闭思考 (Off)</option>
-                        <option value="auto" ${thinking==='auto'?'selected':''}>⚡ 动态自适应 (Auto)</option>
-                        <option value="minimal" ${thinking==='minimal'?'selected':''}>🟢 轻度快速 (~2K)</option>
-                        <option value="low" ${thinking==='low'?'selected':''}>🟢 低强度 (~4K)</option>
-                        <option value="medium" ${thinking==='medium'?'selected':''}>🟡 中强度 (~8K)</option>
-                        <option value="high" ${thinking==='high'?'selected':''}>🟣 高强度 (~16K-32K)</option>
-                        <option value="max" ${thinking==='max'||thinking==='ultra'?'selected':''}>🔴 满血极限 (~64K)</option>
-                        <option value="budget" ${thinking==='budget'?'selected':''}>⚙️ 自定义 Tokens</option>
+                        <option value="off" ${thinking==='off'||thinking==='none'?'selected':''}>off (Disabled / 关闭思考)</option>
+                        <option value="low" ${thinking==='low'?'selected':''}>low (低强度 ~4K / effort: low)</option>
+                        <option value="medium" ${thinking==='medium'?'selected':''}>medium (中强度 ~8K / effort: medium)</option>
+                        <option value="high" ${thinking==='high'?'selected':''}>high (高强度 ~16K-32K / effort: high)</option>
+                        <option value="auto" ${thinking==='auto'?'selected':''}>auto (自适应动态 / dynamic)</option>
+                        <option value="minimal" ${thinking==='minimal'?'selected':''}>minimal (极轻量 ~2K / budget: 2048)</option>
+                        <option value="max" ${thinking==='max'||thinking==='ultra'?'selected':''}>max (满血极限 ~64K / max budget)</option>
+                        <option value="custom" ${thinking==='custom'||thinking==='budget'?'selected':''}>custom (自定义 Token 预算)</option>
                     </select>
                 </td>
                 <td>
@@ -251,7 +251,7 @@ function onThinkingModeChange(chIdx, mIdx, mode) {
     else if (mode === 'medium') budget = 8192;
     else if (mode === 'high') budget = 16384;
     else if (mode === 'max' || mode === 'ultra') budget = 64000;
-    else if (mode === 'budget') {
+    else if (mode === 'custom' || mode === 'budget') {
         const cur = channelsData[chIdx].models[mIdx].thinking_budget;
         budget = cur > 0 ? cur : 4096;
     }

@@ -730,7 +730,7 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		}
 		thinkingBudget = mCfg.ThinkingBudget
 		switch mCfg.ThinkingMode {
-		case "off", "":
+		case "off", "none", "":
 			thinkingEffort = ""
 		case "minimal":
 			thinkingEffort = "low"
@@ -759,7 +759,7 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 			}
 		case "auto":
 			thinkingEffort = "medium"
-		default: // "budget"
+		default: // "custom", "budget"
 			thinkingEffort = "medium"
 		}
 	}
