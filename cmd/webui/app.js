@@ -32,7 +32,7 @@ function switchView(viewName, btn) {
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('view-' + viewName).classList.add('active');
     btn.classList.add('active');
-    if (viewName === 'converter') loadSample('simple');
+    if (viewName === 'converter') loadSample('tools');
 }
 
 async function fetchConfig() {
@@ -448,42 +448,6 @@ async function saveAllChannels() {
 }
 
 const sampleSets = {
-    simple: {
-        openai: {
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: '你是一位资深的 Go 语言系统架构师。' },
-                { role: 'user', content: '请用简洁的语言解释 Goroutine 与 OS 线程的区别。' }
-            ],
-            max_tokens: 2048,
-            temperature: 0.7
-        },
-        claude: {
-            model: 'claude-3-5-sonnet-20241022',
-            system: [{ type: 'text', text: '你是一位资深的 Go 语言系统架构师。' }],
-            messages: [
-                { role: 'user', content: '请用简洁的语言解释 Goroutine 与 OS 线程的区别。' }
-            ],
-            max_tokens: 2048,
-            temperature: 0.7
-        },
-        gemini: {
-            contents: [
-                { role: 'user', parts: [{ text: '请用简洁的语言解释 Goroutine 与 OS 线程的区别。' }] }
-            ],
-            systemInstruction: { parts: [{ text: '你是一位资深的 Go 语言系统架构师。' }] },
-            generationConfig: { maxOutputTokens: 2048, temperature: 0.7 }
-        },
-        openai_responses: {
-            model: 'gpt-4o',
-            instructions: '你是一位资深的 Go 语言系统架构师。',
-            input: [
-                { role: 'user', content: '请用简洁的语言解释 Goroutine 与 OS 线程的区别。' }
-            ],
-            max_output_tokens: 2048,
-            temperature: 0.7
-        }
-    },
     tools: {
         openai: {
             model: 'gpt-4o',
@@ -568,7 +532,7 @@ function setConvSource(fmt, el) {
     curConvSource = fmt;
     el.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    loadSample('simple');
+    loadSample('tools');
 }
 
 function setConvTarget(fmt, el) {
@@ -579,8 +543,7 @@ function setConvTarget(fmt, el) {
 }
 
 function loadSample(type) {
-    const set = sampleSets[type] || sampleSets['simple'];
-    const data = set[curConvSource] || set['openai'];
+    const data = sampleSets.tools[curConvSource] || sampleSets.tools['openai'];
     document.getElementById('convInput').value = JSON.stringify(data, null, 2);
     doConvert();
 }
