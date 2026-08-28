@@ -167,6 +167,58 @@ func findChannelAndModel(modelName string) (*ChannelConfig, *ModelConfig) {
 	return nil, nil
 }
 
+func normalizeBaseURL(baseURL, defaultBase string) string {
+	base := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	if base == "" {
+		base = defaultBase
+	}
+	return strings.TrimSuffix(base, "/")
+}
+
+func buildChatCompletionsURL(baseURL string) string {
+	base := normalizeBaseURL(baseURL, "https://api.openai.com")
+	if strings.HasSuffix(base, "/chat/completions") {
+		return base
+	}
+	if strings.HasSuffix(base, "/v1") {
+		return base + "/chat/completions"
+	}
+	return base + "/v1/chat/completions"
+}
+
+func buildModelsURL(baseURL string) string {
+	base := normalizeBaseURL(baseURL, "https://api.openai.com")
+	if strings.HasSuffix(base, "/models") {
+		return base
+	}
+	if strings.HasSuffix(base, "/v1") {
+		return base + "/models"
+	}
+	return base + "/v1/models"
+}
+
+func buildResponsesURL(baseURL string) string {
+	base := normalizeBaseURL(baseURL, "https://api.openai.com")
+	if strings.HasSuffix(base, "/responses") {
+		return base
+	}
+	if strings.HasSuffix(base, "/v1") {
+		return base + "/responses"
+	}
+	return base + "/v1/responses"
+}
+
+func buildClaudeMessagesURL(baseURL string) string {
+	base := normalizeBaseURL(baseURL, "https://api.anthropic.com")
+	if strings.HasSuffix(base, "/messages") {
+		return base
+	}
+	if strings.HasSuffix(base, "/v1") {
+		return base + "/messages"
+	}
+	return base + "/v1/messages"
+}
+
 type FetchModelsReq struct {
 	Provider string `json:"provider"`
 	APIKey   string `json:"api_key"`
@@ -189,10 +241,8 @@ func handleFetchModels(w http.ResponseWriter, r *http.Request) {
 
 	switch provider {
 	case "claude":
-		if baseURL == "" {
-			baseURL = "https://api.anthropic.com"
-		}
-		httpReq, _ := http.NewRequest(http.MethodGet, baseURL+"/v1/models", nil)
+		targetURL := buildModelsURL(baseURL)
+		httpReq, _ := http.NewRequest(http.MethodGet, targetURL, nil)
 		httpReq.Header.Set("x-api-key", req.APIKey)
 		httpReq.Header.Set("anthropic-version", "2023-06-01")
 		resp, err := client.Do(httpReq)
@@ -262,15 +312,9 @@ func handleFetchModels(w http.ResponseWriter, r *http.Request) {
 			fetchedIDs = []string{"llama3:latest", "qwen2.5:latest", "deepseek-r1:latest"}
 		}
 
-	default: // openai, deepseek
-		if baseURL == "" {
-			if provider == "deepseek" {
-				baseURL = "https://api.deepseek.com"
-			} else {
-				baseURL = "https://api.openai.com"
-			}
-		}
-		httpReq, _ := http.NewRequest(http.MethodGet, baseURL+"/v1/models", nil)
+	default: // openai, deepseek, opencode_zen
+		targetURL := buildModelsURL(baseURL)
+		httpReq, _ := http.NewRequest(http.MethodGet, targetURL, nil)
 		if req.APIKey != "" {
 			httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
 		}
@@ -397,7 +441,8 @@ func handleTestModel(w http.ResponseWriter, r *http.Request) {
 		}
 		payload, _ := json.Marshal(cRes.Value)
 
-		httpReq, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/messages", bytes.NewReader(payload))
+		targetURL := buildClaudeMessagesURL(baseURL)
+		httpReq, _ := http.NewRequest(http.MethodPost, targetURL, bytes.NewReader(payload))
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("x-api-key", req.APIKey)
 		httpReq.Header.Set("anthropic-version", "2023-06-01")
@@ -421,9 +466,6 @@ func handleTestModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if provider == "openai_responses" || provider == "responses" {
-		if baseURL == "" {
-			baseURL = "https://api.openai.com"
-		}
 		meta := &convmeta.Values{
 			OriginModelName:     req.Model,
 			UpstreamModelName:   req.Model,
@@ -436,7 +478,8 @@ func handleTestModel(w http.ResponseWriter, r *http.Request) {
 		}
 		payload, _ := json.Marshal(rRes.Value)
 
-		httpReq, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/responses", bytes.NewReader(payload))
+		targetURL := buildResponsesURL(baseURL)
+		httpReq, _ := http.NewRequest(http.MethodPost, targetURL, bytes.NewReader(payload))
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
 
@@ -458,11 +501,9 @@ func handleTestModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if baseURL == "" {
-		baseURL = "https://api.openai.com"
-	}
+	targetURL := buildChatCompletionsURL(baseURL)
 	payload, _ := json.Marshal(mockPrompt)
-	httpReq, _ := http.NewRequest(http.MethodPost, baseURL+"/v1/chat/completions", bytes.NewReader(payload))
+	httpReq, _ := http.NewRequest(http.MethodPost, targetURL, bytes.NewReader(payload))
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+req.APIKey)
 
@@ -924,12 +965,7 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 		}
 
 		responsesPayload, _ := json.Marshal(respRes.Value)
-		baseURL := ch.BaseURL
-		if baseURL == "" {
-			baseURL = "https://api.openai.com"
-		}
-		targetEndpoint := strings.TrimSuffix(baseURL, "/") + "/v1/responses"
-
+		targetEndpoint := buildResponsesURL(ch.BaseURL)
 		httpReq, _ := http.NewRequest(http.MethodPost, targetEndpoint, bytes.NewReader(responsesPayload))
 		httpReq.Header.Set("Content-Type", "application/json")
 		httpReq.Header.Set("Authorization", "Bearer "+ch.APIKey)
@@ -966,11 +1002,7 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 默认 OpenAI Chat Completions / 通用兼容
-	baseURL := ch.BaseURL
-	if baseURL == "" {
-		baseURL = "https://api.openai.com"
-	}
-	targetEndpoint := strings.TrimSuffix(baseURL, "/") + "/v1/chat/completions"
+	targetEndpoint := buildChatCompletionsURL(ch.BaseURL)
 	openAIReq.Model = upstreamModelID
 	payload, _ := json.Marshal(openAIReq)
 
