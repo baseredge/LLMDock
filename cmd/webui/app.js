@@ -201,12 +201,13 @@ function renderModelTableRows(chIdx, ch) {
                 <td>
                     <select class="table-select" onchange="onThinkingModeChange(${chIdx}, ${mIdx}, this.value)">
                         <option value="off" ${thinking==='off'||thinking==='none'?'selected':''}>off (Disabled / 关闭思考)</option>
+                        <option value="minimal" ${thinking==='minimal'?'selected':''}>minimal (极轻量 ~2K / budget: 2048)</option>
                         <option value="low" ${thinking==='low'?'selected':''}>low (低强度 ~4K / effort: low)</option>
                         <option value="medium" ${thinking==='medium'?'selected':''}>medium (中强度 ~8K / effort: medium)</option>
-                        <option value="high" ${thinking==='high'?'selected':''}>high (高强度 ~16K-32K / effort: high)</option>
+                        <option value="high" ${thinking==='high'?'selected':''}>high (高强度 ~16K / effort: high)</option>
+                        <option value="xhigh" ${thinking==='xhigh'||thinking==='x-high'?'selected':''}>xhigh (超强思考 ~32K / effort: xhigh)</option>
+                        <option value="ultra" ${thinking==='ultra'||thinking==='max'?'selected':''}>ultra (满血极限 ~64K / effort: ultra)</option>
                         <option value="auto" ${thinking==='auto'?'selected':''}>auto (自适应动态 / dynamic)</option>
-                        <option value="minimal" ${thinking==='minimal'?'selected':''}>minimal (极轻量 ~2K / budget: 2048)</option>
-                        <option value="max" ${thinking==='max'||thinking==='ultra'?'selected':''}>max (满血极限 ~64K / max budget)</option>
                         <option value="custom" ${thinking==='custom'||thinking==='budget'?'selected':''}>custom (自定义 Token 预算)</option>
                     </select>
                 </td>
@@ -252,7 +253,8 @@ function onThinkingModeChange(chIdx, mIdx, mode) {
     else if (mode === 'low') budget = 4096;
     else if (mode === 'medium') budget = 8192;
     else if (mode === 'high') budget = 16384;
-    else if (mode === 'max' || mode === 'ultra') budget = 64000;
+    else if (mode === 'xhigh' || mode === 'x-high') budget = 32768;
+    else if (mode === 'ultra' || mode === 'max') budget = 65536;
     else if (mode === 'custom' || mode === 'budget') {
         const cur = channelsData[chIdx].models[mIdx].thinking_budget;
         budget = cur > 0 ? cur : 4096;

@@ -837,10 +837,15 @@ func handleV1ChatCompletions(w http.ResponseWriter, r *http.Request) {
 			if thinkingBudget <= 0 {
 				thinkingBudget = 16384
 			}
-		case "max", "ultra":
+		case "xhigh", "x-high", "extra-high":
 			thinkingEffort = "high"
 			if thinkingBudget <= 0 {
-				thinkingBudget = 64000
+				thinkingBudget = 32768
+			}
+		case "ultra", "max":
+			thinkingEffort = "high"
+			if thinkingBudget <= 0 {
+				thinkingBudget = 65536
 			}
 		case "auto":
 			thinkingEffort = "medium"
